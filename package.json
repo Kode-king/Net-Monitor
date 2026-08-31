@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start -p 4000",
     "poller": "node scripts/standalone-poller.mjs",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "snmp-check": "node scripts/snmp-check.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
