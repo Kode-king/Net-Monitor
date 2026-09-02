@@ -1,6 +1,7 @@
 import { withUser, withAdmin, ok, bad } from "@/lib/api";
 import db from "@/lib/db";
 import { getDevice, deviceLatest } from "@/lib/queries";
+import { normalizeSnmp, validateSnmp } from "@/lib/snmp-config";
 
 export async function GET(_req, { params }) {
   return withUser(async () => {
@@ -12,8 +13,10 @@ export async function GET(_req, { params }) {
 }
 
 const FIELDS = [
-  "name", "host", "type", "snmp_version", "snmp_community",
-  "snmp_port", "poll_interval", "enabled", "location", "notes",
+  "name", "host", "type", "snmp_version", "snmp_community", "snmp_port",
+  "snmp_sec_level", "snmp_sec_name", "snmp_auth_protocol", "snmp_auth_key",
+  "snmp_priv_protocol", "snmp_priv_key", "snmp_context",
+  "poll_interval", "enabled", "location", "notes",
 ];
 
 export async function PUT(req, { params }) {
@@ -25,20 +28,26 @@ export async function PUT(req, { params }) {
     const b = await req.json().catch(() => ({}));
     const next = { ...device };
     for (const f of FIELDS) if (f in b) next[f] = b[f];
+    const snmp = normalizeSnmp(next);
+    const invalid = validateSnmp(snmp);
+    if (invalid) return bad(invalid);
     next.enabled = next.enabled ? 1 : 0;
     next.snmp_port = Number(next.snmp_port) || 161;
     next.poll_interval = Math.max(5, Number(next.poll_interval) || 30);
     db.prepare(
       `UPDATE devices SET name=@name, host=@host, type=@type, snmp_version=@snmp_version,
-         snmp_community=@snmp_community, snmp_port=@snmp_port, poll_interval=@poll_interval,
+         snmp_community=@snmp_community, snmp_port=@snmp_port,
+         snmp_sec_level=@snmp_sec_level, snmp_sec_name=@snmp_sec_name,
+         snmp_auth_protocol=@snmp_auth_protocol, snmp_auth_key=@snmp_auth_key,
+         snmp_priv_protocol=@snmp_priv_protocol, snmp_priv_key=@snmp_priv_key,
+         snmp_context=@snmp_context, poll_interval=@poll_interval,
          enabled=@enabled, location=@location, notes=@notes WHERE id=@id`
     ).run({
       id,
       name: next.name,
       host: next.host,
       type: next.type,
-      snmp_version: next.snmp_version === "1" ? "1" : "2c",
-      snmp_community: next.snmp_community || "public",
+      ...snmp,
       snmp_port: next.snmp_port,
       poll_interval: next.poll_interval,
       enabled: next.enabled,
