@@ -4,21 +4,24 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { fetcher, jsend } from "./api";
+import { useI18n } from "./I18nProvider";
 
 const NAV = [
-  { href: "/", label: "الرئيسية", icon: "▦" },
-  { href: "/devices", label: "الأجهزة", icon: "🖥" },
-  { href: "/alerts", label: "التنبيهات", icon: "🔔" },
-  { href: "/settings", label: "الإعدادات", icon: "⚙" },
+  { href: "/", key: "nav.home", icon: "▦" },
+  { href: "/devices", key: "nav.devices", icon: "🖥" },
+  { href: "/alerts", key: "nav.alerts", icon: "🔔" },
+  { href: "/settings", key: "nav.settings", icon: "⚙" },
 ];
 
 export default function Shell({ children }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t, lang, setLang } = useI18n();
   const { data: me } = useSWR("/api/auth/me", fetcher);
   const { data: ov } = useSWR("/api/overview", fetcher, { refreshInterval: 10000 });
 
   const firing = ov?.firing_alerts || 0;
+  const start = lang === "ar" ? "mr-auto" : "ml-auto";
 
   async function logout() {
     await jsend("/api/auth/logout", "POST");
@@ -27,10 +30,20 @@ export default function Shell({ children }) {
 
   return (
     <div className="min-h-screen flex">
-      <aside className="w-56 shrink-0 border-l border-line bg-panel flex flex-col">
-        <div className="p-4 border-b border-line">
-          <div className="text-lg font-bold">مراقبة الشبكة</div>
-          <div className="text-xs text-muted">SNMP Monitoring</div>
+      <aside className="w-56 shrink-0 border-e border-line bg-panel flex flex-col">
+        <div className="p-4 border-b border-line flex items-start justify-between gap-2">
+          <div>
+            <div className="text-lg font-bold">{t("app.shortTitle")}</div>
+            <div className="text-xs text-muted">{t("app.brandSub")}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+            className="btn border border-line text-muted hover:bg-panel2 px-2 py-1 text-xs"
+            title={t("lang.switch")}
+          >
+            {t("lang.switch")}
+          </button>
         </div>
         <nav className="flex-1 p-2 space-y-1">
           {NAV.map((n) => {
@@ -44,9 +57,9 @@ export default function Shell({ children }) {
                 }`}
               >
                 <span>{n.icon}</span>
-                <span>{n.label}</span>
+                <span>{t(n.key)}</span>
                 {n.href === "/alerts" && firing > 0 && (
-                  <span className="ml-auto badge bg-rose-500/20 text-rose-400">{firing}</span>
+                  <span className={`${start} badge bg-rose-500/20 text-rose-400`}>{firing}</span>
                 )}
               </Link>
             );
@@ -57,7 +70,7 @@ export default function Shell({ children }) {
             {me?.user ? (
               <>
                 <span className="text-ink">{me.user.username}</span>
-                <span className="badge bg-panel2 text-muted mr-2">{me.user.role}</span>
+                <span className="badge bg-panel2 text-muted mx-2">{me.user.role}</span>
               </>
             ) : (
               "…"
@@ -65,10 +78,10 @@ export default function Shell({ children }) {
           </div>
           <div className="flex items-center justify-between">
             <span className={ov?.poller ? "text-emerald-400" : "text-rose-400"}>
-              ● poller {ov?.poller ? "يعمل" : "متوقف"}
+              ● {ov?.poller ? t("poller.running") : t("poller.stopped")}
             </span>
             <button onClick={logout} className="text-rose-400 hover:underline">
-              خروج
+              {t("common.logout")}
             </button>
           </div>
         </div>

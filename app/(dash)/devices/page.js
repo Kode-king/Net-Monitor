@@ -3,36 +3,38 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { fetcher } from "@/components/api";
-import { pct, bytes, relTime, typeLabel, statusMeta } from "@/lib/format";
+import { useI18n } from "@/components/I18nProvider";
+import { pct, bytes, relTime, typeLabelOf, statusMetaOf } from "@/lib/format";
 
 export default function DevicesPage() {
+  const { t } = useI18n();
   const { data } = useSWR("/api/devices", fetcher, { refreshInterval: 8000 });
   const devices = data?.devices || [];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">الأجهزة ({devices.length})</h1>
-        <Link href="/devices/new" className="btn-primary">+ إضافة جهاز</Link>
+        <h1 className="text-2xl font-bold">{t("devices.title", { n: devices.length })}</h1>
+        <Link href="/devices/new" className="btn-primary">{t("overview.addDevice")}</Link>
       </div>
 
       <div className="card overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="text-muted border-b border-line">
-            <tr className="text-right">
-              <th className="p-3 font-medium">الاسم</th>
-              <th className="p-3 font-medium">النوع</th>
-              <th className="p-3 font-medium">العنوان</th>
-              <th className="p-3 font-medium">الحالة</th>
+            <tr className="text-start">
+              <th className="p-3 font-medium">{t("devices.name")}</th>
+              <th className="p-3 font-medium">{t("devices.type")}</th>
+              <th className="p-3 font-medium">{t("devices.host")}</th>
+              <th className="p-3 font-medium">{t("devices.status")}</th>
               <th className="p-3 font-medium">CPU</th>
               <th className="p-3 font-medium">RAM</th>
-              <th className="p-3 font-medium">آخر تحديث</th>
-              <th className="p-3 font-medium">تنبيهات</th>
+              <th className="p-3 font-medium">{t("devices.lastUpdate")}</th>
+              <th className="p-3 font-medium">{t("devices.alerts")}</th>
             </tr>
           </thead>
           <tbody>
             {devices.map((d) => {
-              const sm = statusMeta[d.status];
+              const sm = statusMetaOf(d.status);
               return (
                 <tr key={d.id} className="border-b border-line/50 hover:bg-panel2">
                   <td className="p-3">
@@ -40,7 +42,7 @@ export default function DevicesPage() {
                       {d.name}
                     </Link>
                   </td>
-                  <td className="p-3 text-muted">{typeLabel[d.type]}</td>
+                  <td className="p-3 text-muted">{typeLabelOf(d.type)}</td>
                   <td className="p-3 text-muted font-mono text-xs">{d.host}</td>
                   <td className="p-3"><span className={`badge ${sm.cls}`}>{sm.label}</span></td>
                   <td className="p-3">{pct(d.last?.cpu)}</td>
@@ -64,7 +66,7 @@ export default function DevicesPage() {
             {devices.length === 0 && (
               <tr>
                 <td colSpan={8} className="p-8 text-center text-muted">
-                  لا توجد أجهزة.
+                  {t("devices.empty")}
                 </td>
               </tr>
             )}

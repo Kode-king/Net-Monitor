@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { jsend } from "./api";
+import { useI18n } from "./I18nProvider";
 
 const empty = {
   name: "",
@@ -29,6 +30,7 @@ const PRIV_PROTOCOLS = ["des", "aes", "aes256b", "aes256r"];
 
 export default function DeviceForm({ initial, id }) {
   const router = useRouter();
+  const { t } = useI18n();
   // drop null/undefined from the loaded device so inputs stay controlled
   const clean = Object.fromEntries(
     Object.entries(initial || {}).filter(([, v]) => v != null)
@@ -79,27 +81,27 @@ export default function DeviceForm({ initial, id }) {
 
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <label className="label">الاسم</label>
+          <label className="label">{t("form.name")}</label>
           <input className="input" value={f.name} onChange={set("name")} required />
         </div>
         <div>
-          <label className="label">العنوان / IP (host)</label>
+          <label className="label">{t("form.host")}</label>
           <input className="input" value={f.host} onChange={set("host")} required />
         </div>
         <div>
-          <label className="label">النوع</label>
+          <label className="label">{t("form.type")}</label>
           <select className="input" value={f.type} onChange={set("type")}>
-            <option value="server">سيرفر</option>
-            <option value="switch">سويتش</option>
-            <option value="router">راوتر</option>
+            <option value="server">{t("type.server")}</option>
+            <option value="switch">{t("type.switch")}</option>
+            <option value="router">{t("type.router")}</option>
           </select>
         </div>
         <div>
-          <label className="label">الموقع (اختياري)</label>
+          <label className="label">{t("form.location")}</label>
           <input className="input" value={f.location || ""} onChange={set("location")} />
         </div>
         <div>
-          <label className="label">إصدار SNMP</label>
+          <label className="label">{t("form.snmpVersion")}</label>
           <select className="input" value={f.snmp_version} onChange={set("snmp_version")}>
             <option value="2c">v2c</option>
             <option value="1">v1</option>
@@ -108,46 +110,46 @@ export default function DeviceForm({ initial, id }) {
         </div>
         {f.snmp_version !== "3" && (
           <div>
-            <label className="label">Community String</label>
+            <label className="label">{t("form.community")}</label>
             <input className="input" value={f.snmp_community} onChange={set("snmp_community")} />
           </div>
         )}
         <div>
-          <label className="label">منفذ SNMP</label>
+          <label className="label">{t("form.snmpPort")}</label>
           <input type="number" className="input" value={f.snmp_port} onChange={set("snmp_port")} />
         </div>
         <div>
-          <label className="label">فترة الاستعلام (ثانية)</label>
+          <label className="label">{t("form.pollInterval")}</label>
           <input type="number" min={5} className="input" value={f.poll_interval} onChange={set("poll_interval")} />
         </div>
       </div>
 
       {f.snmp_version === "3" && (
         <div className="rounded-lg border border-white/10 p-4 space-y-4">
-          <div className="text-sm font-semibold text-muted">إعدادات SNMPv3</div>
+          <div className="text-sm font-semibold text-muted">{t("form.v3Section")}</div>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="label">اسم المستخدم (Security Name)</label>
+              <label className="label">{t("form.secName")}</label>
               <input className="input" value={f.snmp_sec_name} onChange={set("snmp_sec_name")} autoComplete="off" />
             </div>
             <div>
-              <label className="label">مستوى الأمان</label>
+              <label className="label">{t("form.secLevel")}</label>
               <select className="input" value={f.snmp_sec_level} onChange={set("snmp_sec_level")}>
-                <option value="noAuthNoPriv">noAuthNoPriv — بدون مصادقة/تشفير</option>
-                <option value="authNoPriv">authNoPriv — مصادقة فقط</option>
-                <option value="authPriv">authPriv — مصادقة + تشفير</option>
+                <option value="noAuthNoPriv">{t("form.secLevel.noAuthNoPriv")}</option>
+                <option value="authNoPriv">{t("form.secLevel.authNoPriv")}</option>
+                <option value="authPriv">{t("form.secLevel.authPriv")}</option>
               </select>
             </div>
             {f.snmp_sec_level !== "noAuthNoPriv" && (
               <>
                 <div>
-                  <label className="label">بروتوكول المصادقة</label>
+                  <label className="label">{t("form.authProtocol")}</label>
                   <select className="input" value={f.snmp_auth_protocol} onChange={set("snmp_auth_protocol")}>
                     {AUTH_PROTOCOLS.map((p) => <option key={p} value={p}>{p.toUpperCase()}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="label">مفتاح المصادقة (Auth Key)</label>
+                  <label className="label">{t("form.authKey")}</label>
                   <input type="password" className="input" value={f.snmp_auth_key} onChange={set("snmp_auth_key")} autoComplete="new-password" />
                 </div>
               </>
@@ -155,19 +157,19 @@ export default function DeviceForm({ initial, id }) {
             {f.snmp_sec_level === "authPriv" && (
               <>
                 <div>
-                  <label className="label">بروتوكول التشفير</label>
+                  <label className="label">{t("form.privProtocol")}</label>
                   <select className="input" value={f.snmp_priv_protocol} onChange={set("snmp_priv_protocol")}>
                     {PRIV_PROTOCOLS.map((p) => <option key={p} value={p}>{p.toUpperCase()}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="label">مفتاح التشفير (Priv Key)</label>
+                  <label className="label">{t("form.privKey")}</label>
                   <input type="password" className="input" value={f.snmp_priv_key} onChange={set("snmp_priv_key")} autoComplete="new-password" />
                 </div>
               </>
             )}
             <div>
-              <label className="label">Context (اختياري)</label>
+              <label className="label">{t("form.context")}</label>
               <input className="input" value={f.snmp_context} onChange={set("snmp_context")} />
             </div>
           </div>
@@ -175,13 +177,13 @@ export default function DeviceForm({ initial, id }) {
       )}
 
       <div>
-        <label className="label">ملاحظات</label>
+        <label className="label">{t("form.notes")}</label>
         <textarea className="input" rows={2} value={f.notes || ""} onChange={set("notes")} />
       </div>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={!!f.enabled} onChange={set("enabled")} />
-        مُفعّل (يتم استعلامه دوريًا)
+        {t("form.pollingEnabled")}
       </label>
 
       {test && (
@@ -195,19 +197,22 @@ export default function DeviceForm({ initial, id }) {
           }`}
         >
           {test.loading
-            ? "جارٍ الاختبار…"
+            ? t("form.testing")
             : test.ok
-            ? `نجح الاتصال — ${test.sysName || ""} ${test.sysDescr ? "· " + test.sysDescr.slice(0, 60) : ""}`
-            : `فشل: ${test.error}`}
+            ? t("form.testOk", {
+                name: test.sysName || "",
+                descr: test.sysDescr ? "· " + test.sysDescr.slice(0, 60) : "",
+              })
+            : t("form.testFail", { error: test.error })}
         </div>
       )}
 
       <div className="flex gap-2">
         <button type="button" onClick={runTest} className="btn-ghost">
-          اختبار SNMP
+          {t("form.testSnmp")}
         </button>
         <button className="btn-primary" disabled={busy}>
-          {busy ? "جارٍ الحفظ…" : id ? "حفظ التعديلات" : "إضافة الجهاز"}
+          {busy ? t("common.saving") : id ? t("form.saveChanges") : t("form.addDevice")}
         </button>
       </div>
     </form>

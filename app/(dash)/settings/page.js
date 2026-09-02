@@ -3,16 +3,18 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, jsend } from "@/components/api";
+import { useI18n } from "@/components/I18nProvider";
 
-const metricLabel = { cpu: "المعالج %", mem: "الذاكرة %", storage: "التخزين %", down: "توقف الجهاز" };
+const METRIC_KEYS = { cpu: "metric.cpu.pct", mem: "metric.mem.pct", storage: "metric.storage.pct", down: "metric.down" };
 
 export default function SettingsPage() {
+  const { t } = useI18n();
   const { data: me } = useSWR("/api/auth/me", fetcher);
   const isAdmin = me?.user?.role === "admin";
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <h1 className="text-2xl font-bold">الإعدادات</h1>
+      <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
       <PasswordSection />
       <RulesSection isAdmin={isAdmin} />
       {isAdmin && <UsersSection meId={me?.user?.username} />}
@@ -21,6 +23,7 @@ export default function SettingsPage() {
 }
 
 function PasswordSection() {
+  const { t } = useI18n();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [msg, setMsg] = useState(null);
@@ -30,7 +33,7 @@ function PasswordSection() {
     setMsg(null);
     try {
       await jsend("/api/auth/password", "POST", { current, next });
-      setMsg({ ok: true, text: "تم تغيير كلمة المرور" });
+      setMsg({ ok: true, text: t("settings.passwordChanged") });
       setCurrent("");
       setNext("");
     } catch (e) {
@@ -40,7 +43,7 @@ function PasswordSection() {
 
   return (
     <form onSubmit={save} className="card space-y-3">
-      <div className="font-semibold">تغيير كلمة المرور</div>
+      <div className="font-semibold">{t("settings.changePassword")}</div>
       {msg && (
         <div className={`badge py-2 ${msg.ok ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/15 text-rose-400"}`}>
           {msg.text}
@@ -48,25 +51,28 @@ function PasswordSection() {
       )}
       <div className="grid md:grid-cols-2 gap-3">
         <div>
-          <label className="label">كلمة المرور الحالية</label>
+          <label className="label">{t("settings.currentPassword")}</label>
           <input type="password" className="input" value={current} onChange={(e) => setCurrent(e.target.value)} />
         </div>
         <div>
-          <label className="label">كلمة المرور الجديدة</label>
+          <label className="label">{t("settings.newPassword")}</label>
           <input type="password" className="input" value={next} onChange={(e) => setNext(e.target.value)} />
         </div>
       </div>
-      <button className="btn-primary">حفظ</button>
+      <button className="btn-primary">{t("common.save")}</button>
     </form>
   );
 }
 
 function RulesSection({ isAdmin }) {
+  const { t } = useI18n();
   const { data, mutate } = useSWR("/api/alert-rules", fetcher);
   const { data: dv } = useSWR("/api/devices", fetcher);
   const rules = data?.rules || [];
   const devices = dv?.devices || [];
   const [form, setForm] = useState({ metric: "cpu", operator: ">", threshold: 90, duration_s: 120, device_id: "" });
+
+  const metricLabel = (m) => t(METRIC_KEYS[m] || m);
 
   async function add(e) {
     e.preventDefault();
@@ -82,31 +88,31 @@ function RulesSection({ isAdmin }) {
     mutate();
   }
   async function del(id) {
-    if (!confirm("حذف القاعدة؟")) return;
+    if (!confirm(t("settings.rule.deleteConfirm"))) return;
     await jsend(`/api/alert-rules/${id}`, "DELETE");
     mutate();
   }
 
   return (
     <div className="card space-y-3">
-      <div className="font-semibold">قواعد التنبيه</div>
+      <div className="font-semibold">{t("settings.rules")}</div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-muted border-b border-line">
-            <tr className="text-right">
-              <th className="p-2 font-medium">المقياس</th>
-              <th className="p-2 font-medium">الجهاز</th>
-              <th className="p-2 font-medium">الشرط</th>
-              <th className="p-2 font-medium">المدة</th>
-              <th className="p-2 font-medium">مفعّل</th>
+            <tr className="text-start">
+              <th className="p-2 font-medium">{t("settings.rule.metric")}</th>
+              <th className="p-2 font-medium">{t("settings.rule.device")}</th>
+              <th className="p-2 font-medium">{t("settings.rule.condition")}</th>
+              <th className="p-2 font-medium">{t("settings.rule.duration")}</th>
+              <th className="p-2 font-medium">{t("settings.rule.enabled")}</th>
               <th className="p-2"></th>
             </tr>
           </thead>
           <tbody>
             {rules.map((r) => (
               <tr key={r.id} className="border-b border-line/40">
-                <td className="p-2">{metricLabel[r.metric]}</td>
-                <td className="p-2 text-muted">{r.device_name || "كل الأجهزة"}</td>
+                <td className="p-2">{metricLabel(r.metric)}</td>
+                <td className="p-2 text-muted">{r.device_name || t("common.allDevices")}</td>
                 <td className="p-2 font-mono">{r.metric === "down" ? "—" : `${r.operator} ${r.threshold}`}</td>
                 <td className="p-2 text-muted">{r.duration_s}s</td>
                 <td className="p-2">
@@ -117,10 +123,10 @@ function RulesSection({ isAdmin }) {
                     onChange={(e) => patch(r.id, { enabled: e.target.checked })}
                   />
                 </td>
-                <td className="p-2 text-left">
+                <td className="p-2 text-end">
                   {isAdmin && (
                     <button onClick={() => del(r.id)} className="text-rose-400 hover:underline text-xs">
-                      حذف
+                      {t("common.delete")}
                     </button>
                   )}
                 </td>
@@ -133,17 +139,17 @@ function RulesSection({ isAdmin }) {
       {isAdmin && (
         <form onSubmit={add} className="flex flex-wrap items-end gap-2 border-t border-line pt-3">
           <div>
-            <label className="label">المقياس</label>
+            <label className="label">{t("settings.rule.metric")}</label>
             <select className="input" value={form.metric} onChange={(e) => setForm({ ...form, metric: e.target.value })}>
-              {Object.entries(metricLabel).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+              {Object.keys(METRIC_KEYS).map((k) => (
+                <option key={k} value={k}>{metricLabel(k)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="label">الجهاز</label>
+            <label className="label">{t("settings.rule.device")}</label>
             <select className="input" value={form.device_id} onChange={(e) => setForm({ ...form, device_id: e.target.value })}>
-              <option value="">كل الأجهزة</option>
+              <option value="">{t("common.allDevices")}</option>
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
@@ -152,22 +158,22 @@ function RulesSection({ isAdmin }) {
           {form.metric !== "down" && (
             <>
               <div>
-                <label className="label">المشغّل</label>
+                <label className="label">{t("settings.rule.operator")}</label>
                 <select className="input" value={form.operator} onChange={(e) => setForm({ ...form, operator: e.target.value })}>
                   {[">", ">=", "<", "<="].map((o) => <option key={o}>{o}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">الحد %</label>
+                <label className="label">{t("settings.rule.threshold")}</label>
                 <input type="number" className="input w-24" value={form.threshold} onChange={(e) => setForm({ ...form, threshold: e.target.value })} />
               </div>
             </>
           )}
           <div>
-            <label className="label">المدة (ث)</label>
+            <label className="label">{t("settings.rule.durationS")}</label>
             <input type="number" className="input w-24" value={form.duration_s} onChange={(e) => setForm({ ...form, duration_s: e.target.value })} />
           </div>
-          <button className="btn-primary">إضافة قاعدة</button>
+          <button className="btn-primary">{t("settings.rule.add")}</button>
         </form>
       )}
     </div>
@@ -175,6 +181,7 @@ function RulesSection({ isAdmin }) {
 }
 
 function UsersSection({ meId }) {
+  const { t } = useI18n();
   const { data, mutate } = useSWR("/api/users", fetcher);
   const users = data?.users || [];
   const [form, setForm] = useState({ username: "", password: "", role: "viewer" });
@@ -190,7 +197,7 @@ function UsersSection({ meId }) {
     }
   }
   async function del(id) {
-    if (!confirm("حذف المستخدم؟")) return;
+    if (!confirm(t("settings.user.deleteConfirm"))) return;
     try {
       await jsend(`/api/users/${id}`, "DELETE");
       mutate();
@@ -205,13 +212,13 @@ function UsersSection({ meId }) {
 
   return (
     <div className="card space-y-3">
-      <div className="font-semibold">المستخدمون</div>
+      <div className="font-semibold">{t("settings.users")}</div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-muted border-b border-line">
-            <tr className="text-right">
-              <th className="p-2 font-medium">المستخدم</th>
-              <th className="p-2 font-medium">الصلاحية</th>
+            <tr className="text-start">
+              <th className="p-2 font-medium">{t("settings.user.name")}</th>
+              <th className="p-2 font-medium">{t("settings.user.role")}</th>
               <th className="p-2"></th>
             </tr>
           </thead>
@@ -229,9 +236,9 @@ function UsersSection({ meId }) {
                     <option value="admin">admin</option>
                   </select>
                 </td>
-                <td className="p-2 text-left">
+                <td className="p-2 text-end">
                   {u.username !== meId && (
-                    <button onClick={() => del(u.id)} className="text-rose-400 hover:underline text-xs">حذف</button>
+                    <button onClick={() => del(u.id)} className="text-rose-400 hover:underline text-xs">{t("common.delete")}</button>
                   )}
                 </td>
               </tr>
@@ -242,21 +249,21 @@ function UsersSection({ meId }) {
 
       <form onSubmit={add} className="flex flex-wrap items-end gap-2 border-t border-line pt-3">
         <div>
-          <label className="label">اسم المستخدم</label>
+          <label className="label">{t("settings.user.username")}</label>
           <input className="input" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />
         </div>
         <div>
-          <label className="label">كلمة المرور</label>
+          <label className="label">{t("settings.user.password")}</label>
           <input type="text" className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
         </div>
         <div>
-          <label className="label">الصلاحية</label>
+          <label className="label">{t("settings.user.role")}</label>
           <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="viewer">viewer</option>
             <option value="admin">admin</option>
           </select>
         </div>
-        <button className="btn-primary">إضافة مستخدم</button>
+        <button className="btn-primary">{t("settings.user.add")}</button>
       </form>
     </div>
   );

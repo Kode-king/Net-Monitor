@@ -1,4 +1,4 @@
-import { withAdmin, ok, bad } from "@/lib/api";
+import { withAdmin, ok, badT } from "@/lib/api";
 import db from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 
@@ -14,9 +14,9 @@ export async function GET() {
 export async function POST(req) {
   return withAdmin(async () => {
     const b = await req.json().catch(() => ({}));
-    if (!b.username || !b.password) return bad("اسم المستخدم وكلمة المرور مطلوبان");
+    if (!b.username || !b.password) return badT(req, "srv.userPassRequired");
     const exists = db.prepare("SELECT 1 FROM users WHERE username = ?").get(b.username);
-    if (exists) return bad("اسم المستخدم مستخدم بالفعل");
+    if (exists) return badT(req, "srv.userExists");
     const info = db
       .prepare("INSERT INTO users (username, password, role, created_at) VALUES (?, ?, ?, ?)")
       .run(

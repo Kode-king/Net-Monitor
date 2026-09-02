@@ -1,7 +1,17 @@
 "use client";
 
+import { STORAGE_KEY } from "@/lib/i18n";
+
+function lang() {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === "en" ? "en" : "ar";
+  } catch {
+    return "ar";
+  }
+}
+
 export async function jget(url) {
-  const r = await fetch(url, { headers: { "cache-control": "no-cache" } });
+  const r = await fetch(url, { headers: { "cache-control": "no-cache", "x-lang": lang() } });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
   return r.json();
 }
@@ -9,7 +19,7 @@ export async function jget(url) {
 export async function jsend(url, method, body) {
   const r = await fetch(url, {
     method,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-lang": lang() },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await r.json().catch(() => ({}));

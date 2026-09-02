@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { jsend } from "@/components/api";
+import { useI18n } from "@/components/I18nProvider";
 
 export default function LoginPage() {
   return (
@@ -15,6 +16,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { t, lang, setLang } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -38,19 +40,28 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <form onSubmit={submit} className="card w-full max-w-sm space-y-4">
-        <div>
-          <div className="text-xl font-bold">مراقبة الشبكة والسيرفرات</div>
-          <div className="text-sm text-muted">سجّل الدخول للمتابعة</div>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="text-xl font-bold">{t("login.heading")}</div>
+            <div className="text-sm text-muted">{t("login.subtitle")}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+            className="btn border border-line text-muted hover:bg-panel2 px-2 py-1 text-xs shrink-0"
+          >
+            {t("lang.switch")}
+          </button>
         </div>
         {err && (
           <div className="badge bg-rose-500/15 text-rose-400 w-full justify-center py-2">{err}</div>
         )}
         <div>
-          <label className="label">اسم المستخدم</label>
+          <label className="label">{t("login.username")}</label>
           <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
         </div>
         <div>
-          <label className="label">كلمة المرور</label>
+          <label className="label">{t("login.password")}</label>
           <input
             type="password"
             className="input"
@@ -59,10 +70,10 @@ function LoginForm() {
           />
         </div>
         <button className="btn-primary w-full" disabled={loading}>
-          {loading ? "جارٍ الدخول…" : "دخول"}
+          {loading ? t("login.submitting") : t("login.submit")}
         </button>
         <div className="text-xs text-muted text-center">
-          الحساب الافتراضي: <span className="text-ink">admin / admin</span>
+          {t("login.defaultHint")} <span className="text-ink">admin / admin</span>
         </div>
       </form>
     </div>

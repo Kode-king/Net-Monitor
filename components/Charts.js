@@ -11,13 +11,10 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { chartTime, chartDateTime } from "@/lib/format";
+import { useI18n } from "./I18nProvider";
 
-function fmtTime(ts) {
-  return new Date(ts * 1000).toLocaleTimeString("ar-EG", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const fmtTime = (ts) => chartTime(ts);
 
 export function PctAreaChart({ data, dataKey, color = "#38bdf8", height = 220, unit = "%" }) {
   return (
@@ -34,7 +31,7 @@ export function PctAreaChart({ data, dataKey, color = "#38bdf8", height = 220, u
         <YAxis stroke="#8a97ad" fontSize={11} domain={unit === "%" ? [0, 100] : ["auto", "auto"]} />
         <Tooltip
           contentStyle={{ background: "#131a26", border: "1px solid #26314a", borderRadius: 8 }}
-          labelFormatter={(t) => new Date(t * 1000).toLocaleString("ar-EG")}
+          labelFormatter={(t) => chartDateTime(t)}
           formatter={(v) => [v == null ? "—" : `${Number(v).toFixed(1)}${unit}`, ""]}
         />
         <Area
@@ -52,6 +49,7 @@ export function PctAreaChart({ data, dataKey, color = "#38bdf8", height = 220, u
 }
 
 export function TrafficChart({ data, height = 220 }) {
+  const { t } = useI18n();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 5, right: 8, left: -8, bottom: 0 }}>
@@ -64,10 +62,10 @@ export function TrafficChart({ data, height = 220 }) {
         />
         <Tooltip
           contentStyle={{ background: "#131a26", border: "1px solid #26314a", borderRadius: 8 }}
-          labelFormatter={(t) => new Date(t * 1000).toLocaleString("ar-EG")}
+          labelFormatter={(t) => chartDateTime(t)}
           formatter={(v, n) => [
             v == null ? "—" : `${(v / 1e6).toFixed(2)} Mbps`,
-            n === "in_bps" ? "وارد" : "صادر",
+            n === "in_bps" ? t("device.in") : t("device.out"),
           ]}
         />
         <Line type="monotone" dataKey="in_bps" stroke="#34d399" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />

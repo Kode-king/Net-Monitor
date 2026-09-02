@@ -1,4 +1,4 @@
-import { withUser, withAdmin, ok, bad } from "@/lib/api";
+import { withUser, withAdmin, ok, bad, badT, reqLang } from "@/lib/api";
 import db from "@/lib/db";
 import { listDevicesWithStatus } from "@/lib/queries";
 import { normalizeSnmp, validateSnmp } from "@/lib/snmp-config";
@@ -12,10 +12,10 @@ const TYPES = ["server", "switch", "router"];
 export async function POST(req) {
   return withAdmin(async () => {
     const b = await req.json().catch(() => ({}));
-    if (!b.name || !b.host) return bad("الاسم والعنوان (host) مطلوبان");
+    if (!b.name || !b.host) return badT(req, "srv.deviceNameHostRequired");
     const type = TYPES.includes(b.type) ? b.type : "server";
     const snmp = normalizeSnmp(b);
-    const invalid = validateSnmp(snmp);
+    const invalid = validateSnmp(snmp, reqLang(req));
     if (invalid) return bad(invalid);
     const info = db
       .prepare(

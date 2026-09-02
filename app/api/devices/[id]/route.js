@@ -1,13 +1,13 @@
-import { withUser, withAdmin, ok, bad } from "@/lib/api";
+import { withUser, withAdmin, ok, bad, badT, reqLang } from "@/lib/api";
 import db from "@/lib/db";
 import { getDevice, deviceLatest } from "@/lib/queries";
 import { normalizeSnmp, validateSnmp } from "@/lib/snmp-config";
 
-export async function GET(_req, { params }) {
+export async function GET(req, { params }) {
   return withUser(async () => {
     const { id } = await params;
     const device = getDevice(Number(id));
-    if (!device) return bad("غير موجود", 404);
+    if (!device) return badT(req, "srv.notFound", 404);
     return ok({ device, ...deviceLatest(Number(id)) });
   });
 }
@@ -24,12 +24,12 @@ export async function PUT(req, { params }) {
     const { id: rawId } = await params;
     const id = Number(rawId);
     const device = getDevice(id);
-    if (!device) return bad("غير موجود", 404);
+    if (!device) return badT(req, "srv.notFound", 404);
     const b = await req.json().catch(() => ({}));
     const next = { ...device };
     for (const f of FIELDS) if (f in b) next[f] = b[f];
     const snmp = normalizeSnmp(next);
-    const invalid = validateSnmp(snmp);
+    const invalid = validateSnmp(snmp, reqLang(req));
     if (invalid) return bad(invalid);
     next.enabled = next.enabled ? 1 : 0;
     next.snmp_port = Number(next.snmp_port) || 161;

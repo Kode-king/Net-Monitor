@@ -1,4 +1,4 @@
-import { withUser, withAdmin, ok, bad } from "@/lib/api";
+import { withUser, withAdmin, ok, badT } from "@/lib/api";
 import db from "@/lib/db";
 
 export async function GET() {
@@ -19,7 +19,7 @@ const OPS = [">", ">=", "<", "<=", "=="];
 export async function POST(req) {
   return withAdmin(async () => {
     const b = await req.json().catch(() => ({}));
-    if (!METRICS.includes(b.metric)) return bad("metric غير صالح");
+    if (!METRICS.includes(b.metric)) return badT(req, "srv.metricInvalid");
     const info = db
       .prepare(
         `INSERT INTO alert_rules (device_id, metric, operator, threshold, duration_s, enabled, created_at)
