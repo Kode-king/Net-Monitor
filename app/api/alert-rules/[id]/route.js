@@ -7,13 +7,16 @@ export async function PUT(req, { params }) {
     const b = await req.json().catch(() => ({}));
     const cur = db.prepare("SELECT * FROM alert_rules WHERE id = ?").get(Number(id));
     if (!cur) return ok({ ok: false });
+    const severity =
+      b.severity != null ? (b.severity === "critical" ? "critical" : "warning") : cur.severity;
     db.prepare(
-      `UPDATE alert_rules SET operator=?, threshold=?, duration_s=?, enabled=? WHERE id=?`
+      `UPDATE alert_rules SET operator=?, threshold=?, duration_s=?, enabled=?, severity=? WHERE id=?`
     ).run(
       b.operator ?? cur.operator,
       b.threshold != null ? Number(b.threshold) : cur.threshold,
       b.duration_s != null ? Number(b.duration_s) : cur.duration_s,
       b.enabled != null ? (b.enabled ? 1 : 0) : cur.enabled,
+      severity,
       Number(id)
     );
     return ok({ ok: true });

@@ -50,6 +50,9 @@ export default function AlertsPage() {
                 >
                   {a.state === "firing" ? t("alerts.state.firing") : t("alerts.state.resolved")}
                 </span>
+                {a.severity === "critical" && (
+                  <span className="badge bg-rose-500/20 text-rose-400">🚨 {t("severity.critical")}</span>
+                )}
                 <span className="badge bg-panel2 text-muted">{metricLabel(a.metric)}</span>
                 <Link href={`/devices/${a.device_id}`} className="text-sky-400 hover:underline font-medium">
                   {a.device_name}

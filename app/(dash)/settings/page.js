@@ -16,6 +16,7 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-4xl">
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
       <PasswordSection />
+      <NotificationsSection isAdmin={isAdmin} />
       <RulesSection isAdmin={isAdmin} />
       {isAdmin && <UsersSection meId={me?.user?.username} />}
     </div>
@@ -64,15 +65,82 @@ function PasswordSection() {
   );
 }
 
+function NotificationsSection({ isAdmin }) {
+  const { t } = useI18n();
+  const { data, mutate } = useSWR("/api/alert-settings", fetcher);
+  const [text, setText] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const value = text ?? (data?.recipients || []).join(", ");
+
+  async function save(e) {
+    e.preventDefault();
+    setMsg(null);
+    try {
+      await jsend("/api/alert-settings", "PUT", { recipients: value });
+      await mutate();
+      setText(null);
+      setMsg({ ok: true, text: t("common.save") });
+    } catch (e) {
+      setMsg({ ok: false, text: e.message });
+    }
+  }
+  async function test() {
+    setMsg(null);
+    try {
+      const r = await jsend("/api/alert-settings", "POST");
+      setMsg(
+        r.sent
+          ? { ok: true, text: t("settings.emailSent") }
+          : { ok: false, text: t("settings.emailFailed", { error: r.reason || "?" }) }
+      );
+    } catch (e) {
+      setMsg({ ok: false, text: e.message });
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="card space-y-3">
+      <div className="font-semibold">{t("settings.notifications")}</div>
+      <div className={`text-xs ${data?.smtpHost ? "text-emerald-400" : "text-amber-400"}`}>
+        {data?.smtpHost ? t("settings.smtpOk", { host: data.smtpHost }) : t("settings.smtpNotSet")}
+      </div>
+      {msg && (
+        <div className={`badge py-2 ${msg.ok ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/15 text-rose-400"}`}>
+          {msg.text}
+        </div>
+      )}
+      <div>
+        <label className="label">{t("settings.emailRecipients")}</label>
+        <input
+          className="input"
+          placeholder="noc@hospital.gov, sysadmin@hospital.gov"
+          value={value}
+          disabled={!isAdmin}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <div className="text-[11px] text-muted mt-1">{t("settings.emailHint")}</div>
+      </div>
+      {isAdmin && (
+        <div className="flex gap-2">
+          <button className="btn-primary">{t("common.save")}</button>
+          <button type="button" onClick={test} className="btn-ghost">{t("settings.testEmail")}</button>
+        </div>
+      )}
+    </form>
+  );
+}
+
 function RulesSection({ isAdmin }) {
   const { t } = useI18n();
   const { data, mutate } = useSWR("/api/alert-rules", fetcher);
   const { data: dv } = useSWR("/api/devices", fetcher);
   const rules = data?.rules || [];
   const devices = dv?.devices || [];
-  const [form, setForm] = useState({ metric: "cpu", operator: ">", threshold: 90, duration_s: 120, device_id: "" });
+  const [form, setForm] = useState({ metric: "cpu", operator: ">", threshold: 90, duration_s: 120, device_id: "", severity: "warning" });
 
   const metricLabel = (m) => t(METRIC_KEYS[m] || m);
+  const sevCls = (s) =>
+    s === "critical" ? "bg-rose-500/15 text-rose-400" : "bg-amber-500/15 text-amber-400";
 
   async function add(e) {
     e.preventDefault();
@@ -104,6 +172,7 @@ function RulesSection({ isAdmin }) {
               <th className="p-2 font-medium">{t("settings.rule.device")}</th>
               <th className="p-2 font-medium">{t("settings.rule.condition")}</th>
               <th className="p-2 font-medium">{t("settings.rule.duration")}</th>
+              <th className="p-2 font-medium">{t("settings.rule.severity")}</th>
               <th className="p-2 font-medium">{t("settings.rule.enabled")}</th>
               <th className="p-2"></th>
             </tr>
@@ -115,6 +184,20 @@ function RulesSection({ isAdmin }) {
                 <td className="p-2 text-muted">{r.device_name || t("common.allDevices")}</td>
                 <td className="p-2 font-mono">{r.metric === "down" ? "—" : `${r.operator} ${r.threshold}`}</td>
                 <td className="p-2 text-muted">{r.duration_s}s</td>
+                <td className="p-2">
+                  {isAdmin ? (
+                    <select
+                      className="input w-28 py-1"
+                      value={r.severity || "warning"}
+                      onChange={(e) => patch(r.id, { severity: e.target.value })}
+                    >
+                      <option value="warning">{t("severity.warning")}</option>
+                      <option value="critical">{t("severity.critical")}</option>
+                    </select>
+                  ) : (
+                    <span className={`badge ${sevCls(r.severity)}`}>{t(`severity.${r.severity || "warning"}`)}</span>
+                  )}
+                </td>
                 <td className="p-2">
                   <input
                     type="checkbox"
@@ -172,6 +255,13 @@ function RulesSection({ isAdmin }) {
           <div>
             <label className="label">{t("settings.rule.durationS")}</label>
             <input type="number" className="input w-24" value={form.duration_s} onChange={(e) => setForm({ ...form, duration_s: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">{t("settings.rule.severity")}</label>
+            <select className="input" value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>
+              <option value="warning">{t("severity.warning")}</option>
+              <option value="critical">{t("severity.critical")}</option>
+            </select>
           </div>
           <button className="btn-primary">{t("settings.rule.add")}</button>
         </form>

@@ -15,6 +15,7 @@ export async function GET() {
 
 const METRICS = ["cpu", "mem", "storage", "down"];
 const OPS = [">", ">=", "<", "<=", "=="];
+const sev = (s) => (s === "critical" ? "critical" : "warning");
 
 export async function POST(req) {
   return withAdmin(async () => {
@@ -22,8 +23,8 @@ export async function POST(req) {
     if (!METRICS.includes(b.metric)) return badT(req, "srv.metricInvalid");
     const info = db
       .prepare(
-        `INSERT INTO alert_rules (device_id, metric, operator, threshold, duration_s, enabled, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO alert_rules (device_id, metric, operator, threshold, duration_s, enabled, severity, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         b.device_id ? Number(b.device_id) : null,
@@ -32,6 +33,7 @@ export async function POST(req) {
         Number(b.threshold) || 0,
         Math.max(0, Number(b.duration_s) || 0),
         b.enabled === false ? 0 : 1,
+        sev(b.severity),
         Date.now()
       );
     return ok({ id: info.lastInsertRowid });

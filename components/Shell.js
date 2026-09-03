@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { fetcher, jsend } from "./api";
 import { useI18n } from "./I18nProvider";
+import CriticalAlarm from "./CriticalAlarm";
 
 const NAV = [
   { href: "/", key: "nav.home", icon: "▦" },
@@ -21,6 +22,7 @@ export default function Shell({ children }) {
   const { data: ov } = useSWR("/api/overview", fetcher, { refreshInterval: 10000 });
 
   const firing = ov?.firing_alerts || 0;
+  const critical = ov?.critical_alerts || 0;
   const start = lang === "ar" ? "mr-auto" : "ml-auto";
 
   async function logout() {
@@ -86,7 +88,8 @@ export default function Shell({ children }) {
           </div>
         </div>
       </aside>
-      <main className="flex-1 min-w-0 p-6">{children}</main>
+      <main className={`flex-1 min-w-0 p-6 ${critical > 0 ? "pb-24" : ""}`}>{children}</main>
+      <CriticalAlarm count={critical} />
     </div>
   );
 }
