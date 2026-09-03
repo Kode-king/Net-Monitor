@@ -6,3 +6,6 @@ data/*.db
 data/*.db-*
 .env
 .env.local
+
+# internal deployment docs (contains network details)
+docs/
