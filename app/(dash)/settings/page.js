@@ -69,28 +69,32 @@ function NotificationsSection({ isAdmin }) {
   const { t } = useI18n();
   const { data, mutate } = useSWR("/api/alert-settings", fetcher);
   const [text, setText] = useState(null);
+  const [rep, setRep] = useState(null);
   const [msg, setMsg] = useState(null);
   const value = text ?? (data?.recipients || []).join(", ");
+  const report = rep ?? data?.report ?? { enabled: false, dow: 0, hour: 8, periodDays: 7, lang: "ar" };
+  const setR = (k, v) => setRep({ ...report, [k]: v });
 
   async function save(e) {
     e.preventDefault();
     setMsg(null);
     try {
-      await jsend("/api/alert-settings", "PUT", { recipients: value });
+      await jsend("/api/alert-settings", "PUT", { recipients: value, report });
       await mutate();
       setText(null);
+      setRep(null);
       setMsg({ ok: true, text: t("common.save") });
     } catch (e) {
       setMsg({ ok: false, text: e.message });
     }
   }
-  async function test() {
+  async function fire(action, okKey) {
     setMsg(null);
     try {
-      const r = await jsend("/api/alert-settings", "POST");
+      const r = await jsend("/api/alert-settings", "POST", { action });
       setMsg(
         r.sent
-          ? { ok: true, text: t("settings.emailSent") }
+          ? { ok: true, text: t(okKey) }
           : { ok: false, text: t("settings.emailFailed", { error: r.reason || "?" }) }
       );
     } catch (e) {
@@ -120,10 +124,50 @@ function NotificationsSection({ isAdmin }) {
         />
         <div className="text-[11px] text-muted mt-1">{t("settings.emailHint")}</div>
       </div>
+
+      <div className="border-t border-line pt-3 space-y-3">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={!!report.enabled}
+            disabled={!isAdmin}
+            onChange={(e) => setR("enabled", e.target.checked)}
+          />
+          {t("settings.report")}
+        </label>
+        <div className="grid sm:grid-cols-4 gap-3">
+          <div>
+            <label className="label">{t("settings.reportDay")}</label>
+            <select className="input" value={report.dow} disabled={!isAdmin} onChange={(e) => setR("dow", Number(e.target.value))}>
+              {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                <option key={d} value={d}>{t(`day.${d}`)}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">{t("settings.reportHour")}</label>
+            <input type="number" min={0} max={23} className="input" value={report.hour} disabled={!isAdmin} onChange={(e) => setR("hour", Number(e.target.value))} />
+          </div>
+          <div>
+            <label className="label">{t("settings.reportPeriod")}</label>
+            <input type="number" min={1} max={31} className="input" value={report.periodDays} disabled={!isAdmin} onChange={(e) => setR("periodDays", Number(e.target.value))} />
+          </div>
+          <div>
+            <label className="label">{t("settings.reportLang")}</label>
+            <select className="input" value={report.lang} disabled={!isAdmin} onChange={(e) => setR("lang", e.target.value)}>
+              <option value="ar">{t("lang.ar")}</option>
+              <option value="en">{t("lang.en")}</option>
+            </select>
+          </div>
+        </div>
+        <div className="text-[11px] text-muted">{t("settings.reportHint")}</div>
+      </div>
+
       {isAdmin && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button className="btn-primary">{t("common.save")}</button>
-          <button type="button" onClick={test} className="btn-ghost">{t("settings.testEmail")}</button>
+          <button type="button" onClick={() => fire("test-email", "settings.emailSent")} className="btn-ghost">{t("settings.testEmail")}</button>
+          <button type="button" onClick={() => fire("send-report", "settings.reportSent")} className="btn-ghost">{t("settings.sendReportNow")}</button>
         </div>
       )}
     </form>
