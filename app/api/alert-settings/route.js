@@ -5,6 +5,7 @@ import {
   sendTestEmail,
 } from "@/lib/mailer";
 import { getReportConfig, setReportConfig, sendReportNow } from "@/lib/report";
+import { auditReq } from "@/lib/audit";
 
 export async function GET() {
   return withUser(() =>
@@ -17,10 +18,11 @@ export async function GET() {
 }
 
 export async function PUT(req) {
-  return withAdmin(async () => {
+  return withAdmin(async (session) => {
     const b = await req.json().catch(() => ({}));
     if (b.recipients !== undefined) setAlertRecipients(b.recipients);
     if (b.report && typeof b.report === "object") setReportConfig(b.report);
+    auditReq(req, session, "notifications.update");
     return ok({
       ok: true,
       recipients: getAlertRecipients(),

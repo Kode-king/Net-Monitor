@@ -6,9 +6,24 @@ const secret = new TextEncoder().encode(
 );
 
 const PUBLIC = ["/login", "/api/auth/login"];
+const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
+
+  // CSRF: for state-changing API calls, require the Origin to match the host.
+  if (pathname.startsWith("/api/") && MUTATING.has(req.method)) {
+    const origin = req.headers.get("origin");
+    if (origin) {
+      let sameHost = false;
+      try {
+        sameHost = new URL(origin).host === req.headers.get("host");
+      } catch {}
+      if (!sameHost) {
+        return NextResponse.json({ error: "Bad origin" }, { status: 403 });
+      }
+    }
+  }
 
   if (
     PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/")) ||

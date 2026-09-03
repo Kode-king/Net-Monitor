@@ -19,6 +19,7 @@ export default function SettingsPage() {
       <NotificationsSection isAdmin={isAdmin} />
       <RulesSection isAdmin={isAdmin} />
       {isAdmin && <UsersSection meId={me?.user?.username} />}
+      {isAdmin && <AuditSection />}
     </div>
   );
 }
@@ -310,6 +311,45 @@ function RulesSection({ isAdmin }) {
           <button className="btn-primary">{t("settings.rule.add")}</button>
         </form>
       )}
+    </div>
+  );
+}
+
+function AuditSection() {
+  const { t } = useI18n();
+  const { data } = useSWR("/api/audit", fetcher, { refreshInterval: 20000 });
+  const entries = data?.entries || [];
+  const fmt = (ts) => new Date(ts).toLocaleString();
+  return (
+    <div className="card space-y-3">
+      <div className="font-semibold">{t("settings.audit")}</div>
+      <div className="overflow-x-auto max-h-96 overflow-y-auto">
+        <table className="w-full text-xs">
+          <thead className="text-muted border-b border-line sticky top-0 bg-panel">
+            <tr className="text-start">
+              <th className="p-2 font-medium">{t("audit.time")}</th>
+              <th className="p-2 font-medium">{t("audit.actor")}</th>
+              <th className="p-2 font-medium">{t("audit.ip")}</th>
+              <th className="p-2 font-medium">{t("audit.action")}</th>
+              <th className="p-2 font-medium">{t("audit.detail")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e) => (
+              <tr key={e.id} className="border-b border-line/40">
+                <td className="p-2 text-muted whitespace-nowrap">{fmt(e.ts)}</td>
+                <td className="p-2">{e.actor || "—"}</td>
+                <td className="p-2 font-mono text-muted">{e.ip || "—"}</td>
+                <td className={`p-2 font-mono ${e.action.includes("fail") || e.action.includes("throttled") ? "text-rose-400" : ""}`}>{e.action}</td>
+                <td className="p-2 text-muted">{e.detail || ""}</td>
+              </tr>
+            ))}
+            {entries.length === 0 && (
+              <tr><td colSpan={5} className="p-4 text-center text-muted">—</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
